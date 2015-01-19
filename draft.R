@@ -22,5 +22,26 @@ names(stormData)
 #
 # PROPDMGEXP / CROPDMGEXP : are these indications of K, M, B-dollar damage??
 
+data2$data.PROPDMGEXP[(data2$data.PROPDMGEXP == "")] <- 0
+data2$data.PROPDMGEXP[(data2$data.PROPDMGEXP == "+") | (data2$data.PROPDMGEXP == 
+    "-") | (data2$data.PROPDMGEXP == "?")] <- 1
+data2$data.PROPDMGEXP[(data2$data.PROPDMGEXP == "h") | (data2$data.PROPDMGEXP == 
+    "H")] <- 2
+data2$data.PROPDMGEXP[(data2$data.PROPDMGEXP == "k") | (data2$data.PROPDMGEXP == 
+    "K")] <- 3
+data2$data.PROPDMGEXP[(data2$data.PROPDMGEXP == "m") | (data2$data.PROPDMGEXP == 
+    "M")] <- 6
+data2$data.PROPDMGEXP[(data2$data.PROPDMGEXP == "B")] <- 9
+
+data2$data.CROPDMGEXP[(data2$data.CROPDMGEXP == "")] <- 0
+data2$data.CROPDMGEXP[(data2$data.CROPDMGEXP == "+") | (data2$data.CROPDMGEXP == 
+    "-") | (data2$data.CROPDMGEXP == "?")] <- 1
+data2$data.CROPDMGEXP[(data2$data.CROPDMGEXP == "h") | (data2$data.CROPDMGEXP == 
+    "H")] <- 2
+data2$data.CROPDMGEXP[(data2$data.CROPDMGEXP == "k") | (data2$data.CROPDMGEXP == 
+    "K")] <- 3
+data2$data.CROPDMGEXP[(data2$data.CROPDMGEXP == "m") | (data2$data.CROPDMGEXP == 
+    "M")] <- 6
+data2$data.CROPDMGEXP[(data2$data.CROPDMGEXP == "B")] <- 9
 
 
