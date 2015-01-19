@@ -48,14 +48,12 @@ End date   : `r end_date`
 Only the values related to casualties, injuries, property damage, crops damage and event type are relevant for this research.
 
 ```{r reducing-columns, cache=TRUE}
-c < -c("EVTYPE","FATALITIES","INJURIES","PROPDMG","PROPDMGEXP","CROPDMG","CROPDMGEXP")
+c <-c("EVTYPE","FATALITIES","INJURIES","PROPDMG","PROPDMGEXP","CROPDMG","CROPDMGEXP")
 n <- c("type","fat","inj","prop","prope","crop","crope")
 x <- x[,c]
 names(x) <- n
 ```
 
-
-```{r }
 
 ####2.1. Impact on health
 
@@ -68,10 +66,11 @@ health        <- summarize(g, fat = sum(fat), inj = sum(inj))
 
 An inspection of the registered categories shows there are many similar types. In an attempt to correct for this, some similar categories are combined in the following way:
 
-* all types containing the word *THUNDERSTORM* or beginning with the *TSTM*: **combined category THUNDERSTORM**;
-* containing *FLOOD*: **combined category FLOOD**;
-* containing *HEAT*: **combined category HEAT**;
-* containing *DRY*: **combined category DRY**
+* all types containing the word *THUNDERSTORM* or beginning with the *TSTM*: <u>combined category THUNDERSTORM</u>;
+* containing *FLOOD*: <u>combined category FLOOD</u>;
+* containing *HEAT*: <u>combined category HEAT</u>;
+* containing *DRY*: <u>combined category DRY</u>;
+* all other categories will not change name
 
 ```{r reducing-categories}
 health[grep("THUNDERSTORM", health$type),]$type <- "THUNDERSTORM"
@@ -83,14 +82,14 @@ health[grep("DRY", health$type),]$type <- "DRY"
 
 With the updated *type* a new summarization needs to be done. The recategorization has been carried out after the first summarization in order to reduce processing time. 
 
-```{r summarizing-reduced-categories}
+```{r summarizing-reduced-categories, cache=TRUE}
 g      <- group_by(health, type)
 health <- summarize(g, fat = sum(fat), inj = sum(inj))
 ```
 
 Now lists containing the most damaging weather types can be created.
 
-```{r top-impact-lists}
+```{r top-impact-lists, cache=TRUE}
 topF <- arrange(top_n(health, 10, fat), desc(fat))
 topI <- arrange(top_n(health, 10, inj), desc(inj))
 
@@ -103,7 +102,57 @@ topI$type <- factor(topI$type, levels = topI$type, ordered=TRUE)
 
 ####2.2. Impact on the economy
 
-......
+For the economic impact two values are relevant in this dataset, *PROPDMG* and *CROPDMG* that represent damage to property and damage to crops. Both columns have to be multiplied by *PROPDMGEXP* and *CROPDMGEXP* respectively, these represent the order of magnitude. Before making the calculation we need to tidy these two last columns.
+
+```{r processing-damage-values, cache=TRUE}
+
+x$prope[x$prope=="" | x$prope=="?" | x$prope=="-" | x$prope=="+"] <- "0"
+x$prope[x$prope=="h" | x$prope=="H"] <- "2"
+x$prope[x$prope=="k" | x$prope=="K"] <- "3"
+x$prope[x$prope=="m" | x$prope=="M"] <- "6"
+x$prope[x$prope=="b" | x$prope=="B"] <- "9"
+
+x$crope[x$crope=="" | x$crope=="?" | x$crope=="-" | x$crope=="+"] <- "0"
+x$crope[x$crope=="h" | x$crope=="H"] <- "2"
+x$crope[x$crope=="k" | x$crope=="K"] <- "3"
+x$crope[x$crope=="m" | x$crope=="M"] <- "6"
+x$crope[x$crope=="b" | x$crope=="B"] <- "9"
+
+x$prope <- as.numeric(x$prope)
+x$crope <- as.numeric(x$crope)
+
+x$propdmg <- x$prop*10^x$prope
+x$cropdmg <- x$crop*10^x$crope
+
+x$dmg <- x$cropdmg + x$propdmg
+```
+
+Now with the properly calculated damages a summary can be made. As with health impact the grouping will be over the severe weather types. Also the same recategorization will be carried out, grouping similar categories.
+
+
+```{r damage-grouping, cache=TRUE}
+g      <- group_by(x, type)
+damage <- summarize(g, total=sum(dmg), prop=sum(propdmg), crop=sum(cropdmg))
+
+damage[grep("THUNDERSTORM", damage$type),]$type <- "THUNDERSTORM"
+damage[grep("FLOOD", damage$type),]$type <- "FLOOD"
+damage[grep("HEAT", damage$type),]$type <- "HEAT"
+damage[grep("^TSTM", damage$type),]$type <- "THUNDERSTORM"
+damage[grep("DRY", damage$type),]$type <- "DRY"
+
+g      <- group_by(damage, type)
+damage <- summarize(g, total=sum(total), prop=sum(prop), crop=sum(crop))
+
+top_prop <- arrange(top_n(damage, 10, prop), desc(prop))
+top_crop <- arrange(top_n(damage, 10, crop), desc(crop))
+top_all  <- arrange(top_n(damage, 10, total), desc(total))
+
+# creating an ordered factor for plots
+
+top_prop$type <- factor(top_prop$type, levels = top_prop$type, ordered=TRUE)
+top_crop$type <- factor(top_crop$type, levels = top_crop$type, ordered=TRUE)
+top_all$type  <- factor(top_all$type,  levels = top_all$type,  ordered=TRUE)
+```
 
 ###3. Results
 
@@ -137,3 +186,35 @@ g2
 As can be concluded from both *Graphic 1* and *Graphic 2* by far the most devastating weather event is the **tornado**. Between 1950 and 2011 Tornados caused 5633 casualties and 91346 injuries. 
 
 Other weather types having big impact are **heat** (specially when *excessive heat* and *heat* are summed) and **flood* (specially when **flash flood** and **flood** numbers are summed). 
+
+
+####3.2. Weather events having large impact on the economy
+
+```{r plot-economy-impact}
+
+g3 <- ggplot(top_prop, aes(x=factor(type), y=prop))
+g3 <- g3 + geom_bar(stat="identity", fill="#990000")
+g3 <- g3 + theme(axis.text.x = element_text(angle = 30, hjust = 1))
+g3 <- g3 + xlab("Graphic 1: ---") + ylab("Number of ---")
+g3 <- g3 + geom_text(aes(label=prop),vjust=-0.25, size=3, colour="#990000")
+g3 <- g3 + geom_text(data=data.frame(),
+                    aes(8,5000,label="---"), colour="#666666", size=5)
+g3
+
+g4 <- ggplot(top_crop, aes(x=factor(type), y=crop))
+g4 <- g4 + geom_bar(stat="identity", fill="#000099")
+g4 <- g4 + xlab("Graphic 2: ---") + ylab("Number of ---")
+g4 <- g4 + theme(axis.text.x = element_text(angle = 30, hjust =1))
+g4 <- g4 + geom_text(aes(label=crop),vjust=-0.25, size=3, colour="#000099")
+g4 <- g4 + geom_text(data=data.frame(),
+                     aes(8,75000,label="---"), size=5, colour="#666666")
+g4
+
+g5 <- ggplot(top_all, aes(x=factor(type), y=total))
+g5 <- g5 + geom_bar(stat="identity", fill="#990000")
+g5 <- g5 + theme(axis.text.x = element_text(angle = 30, hjust = 1))
+g5 <- g5 + xlab("Graphic 1: ----") + ylab("Number of ----")
+g5 <- g5 + geom_text(aes(label=total),vjust=-0.25, size=3, colour="#990000")
+g5 <- g5 + geom_text(data=data.frame(),
+                     aes(8,5000,label="----"), colour="#666666", size=5)
+g5
