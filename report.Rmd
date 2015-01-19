@@ -1,0 +1,131 @@
+---
+title: "Impact of severe weather events on health and economy"
+author: "Remco Niggebrugge"
+date: "01/19/2015"
+output: html_document
+---
+
+Based on the information from the U.S. National Oceanic and Atmoshperic Administration (NOAA) our research will show which are the severe weather type having the biggest impact on the health of the population and on the economy of the country. The number of weather related casualties and injuries is used to assess the impact on health. Damages to properties and crops (argicultar sector) is used to assess the impact on the economy. The report will list the most damaging weather types.
+
+
+###1. R Libraries
+
+For the proper functioning of the code used in this report, the following libraries are required:
+
+```{r libraries}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+```
+
+
+###2. Data Processing
+
+The **Storm Data** file is first loaded into [R] for further processing:
+
+```{r load-data, cache=TRUE}
+stormData <- read.csv("./repdata-data-StormData.csv.bz2")
+```
+
+The result is an extensive dataset with information from 1950 till 2011. 
+
+```{r information-dataset, cache=TRUE}
+dim(stormData)
+names(stormData)
+```
+
+
+```{r start-end-date, cache=TRUE}
+start_date  <- mdy_hms(stormData[1,]$BGN_DATE) 
+end_date    <- mdy_hms(stormData[dim(stormData)[1],]$BGN_DATE) 
+period      <- paste(start_date," - ", end_date)
+```
+
+
+Start date: `r start_date`  
+End date   : `r end_date`
+
+
+####2.1. Impact on health
+
+For the impact on health the relevant data are in the columns *FATALITIES* and *INJURIES*, for late processing these two values are summarized (summed) for the event types *EVTYPE*.
+
+```{r summarizing-health, cache=TRUE}
+g             <- group_by(stormData, EVTYPE)
+health        <- summarize(g, fatalities = sum(FATALITIES), injuries = sum(INJURIES))
+names(health) <- c("type","fatalities","injuries")
+```
+
+An inspection of the registered categories shows there are many similar types. In an attempt to correct for this, some similar categories are combined in the following way:
+
+* all types containing the word *THUNDERSTORM* or beginning with the *TSTM*: **combined category THUNDERSTORM**;
+* containing *FLOOD*: **combined category FLOOD**;
+* containing *HEAT*: **combined category HEAT**;
+* containing *DRY*: **combined category DRY**
+
+```{r reducing-categories}
+health$type <- health$type
+health[ grep("THUNDERSTORM", health$type),]$type <- "THUNDERSTORM"
+health[ grep("FLOOD", health$type),]$type <- "FLOOD"
+health[ grep("HEAT", health$type),]$type <- "HEAT"
+health[ grep("^TSTM", health$type),]$type <- "THUNDERSTORM"
+health[ grep("DRY", health$type),]$type <- "DRY"
+```
+
+With the updated *type* a new summarization needs to be done. The recategorization has been carried out after the first summarization in order to reduce processing time. 
+
+```{r summarizing-reduced-categories}
+g      <- group_by(health, type)
+health <- summarize(g, fatalities = sum(fatalities), injuries = sum(injuries))
+```
+
+Now lists containing the most damaging weather types can be created.
+
+```{r top-impact-lists}
+topF <- arrange(top_n(health, 10, fatalities), desc(fatalities))
+topI <- arrange(top_n(health, 10, injuries), desc(injuries))
+
+# creating an ordered factor for plots
+
+topF$type <- factor(topF$type, levels = topF$type, ordered=TRUE)
+topI$type <- factor(topI$type, levels = topI$type, ordered=TRUE)
+```
+
+
+####2.2. Impact on the economy
+
+......
+
+###3. Results
+
+
+####3.1. Weather events having most impact on health
+
+Using the processing in the previous section the following graph can be created, indicating those severe weather events having the worst impact on health.
+
+```{r plot-health-impact}
+
+g1 <- ggplot(topF, aes(x=factor(type), y=fatalities))
+g1 <- g1 + geom_bar(stat="identity", fill="#990000")
+g1 <- g1 + theme(axis.text.x = element_text(angle = 30, hjust = 1))
+g1 <- g1 + xlab("Graphic 1: fatalities") + ylab("Number of fatalities")
+g1 <- g1 + geom_text(aes(label=fatalities),vjust=-0.25, size=3, colour="#990000")
+g1 <- g1 + geom_text(data=data.frame(),
+                     aes(8,5000,label="Fatalities"), colour="#666666", size=5)
+g1
+
+g2 <- ggplot(topI, aes(x=factor(type), y=injuries))
+g2 <- g2 + geom_bar(stat="identity", fill="#000099")
+g2 <- g2 + xlab("Graphic 2: injuries") + ylab("Number of injuries")
+g2 <- g2 + theme(axis.text.x = element_text(angle = 30, hjust =1))
+g2 <- g2 + geom_text(aes(label=injuries),vjust=-0.25, size=3, colour="#000099")
+g2 <- g2 + geom_text(data=data.frame(),
+                     aes(8,75000,label="Injuries"), size=5, colour="#666666")
+g2
+
+```
+
+As can be concluded from both *Graphic 1* and *Graphic 2* by far the most devastating weather event is the **tornado**. Between 1950 and 2011 Tornados caused 5633 casualties and 91346 injuries. 
+
+Other weather types having big impact are **heat** (specially when *excessive heat* and *heat* are summed) and **flood* (specially when **flash flood** and **flood** numbers are summed). 
