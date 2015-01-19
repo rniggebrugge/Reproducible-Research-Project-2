@@ -22,6 +22,8 @@ names(stormData)
 #
 # PROPDMGEXP / CROPDMGEXP : are these indications of K, M, B-dollar damage??
 
+http://rstudio-pubs-static.s3.amazonaws.com/17328_500dedd6df3945c2830e3a4e84899c4a.html
+
 data2$data.PROPDMGEXP[(data2$data.PROPDMGEXP == "")] <- 0
 data2$data.PROPDMGEXP[(data2$data.PROPDMGEXP == "+") | (data2$data.PROPDMGEXP == 
     "-") | (data2$data.PROPDMGEXP == "?")] <- 1
