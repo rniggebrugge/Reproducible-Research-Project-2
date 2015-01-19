@@ -24,37 +24,46 @@ library(lubridate)
 
 The **Storm Data** file is first loaded into [R] for further processing:
 
-```{r load-data, cache=TRUE}
-stormData <- read.csv("./repdata-data-StormData.csv.bz2")
+```{r load-data, cache=TRUE} 
+x <- read.csv("./repdata-data-StormData.csv.bz2", stringsAsFactors = FALSE)
 ```
 
 The result is an extensive dataset with information from 1950 till 2011. 
 
 ```{r information-dataset, cache=TRUE}
-dim(stormData)
-names(stormData)
+dim(x)
+names(x)
 ```
 
 
 ```{r start-end-date, cache=TRUE}
-start_date  <- mdy_hms(stormData[1,]$BGN_DATE) 
-end_date    <- mdy_hms(stormData[dim(stormData)[1],]$BGN_DATE) 
+start_date  <- mdy_hms(x[1,]$BGN_DATE) 
+end_date    <- mdy_hms(x[dim(x)[1],]$BGN_DATE) 
 period      <- paste(start_date," - ", end_date)
 ```
-
 
 Start date: `r start_date`  
 End date   : `r end_date`
 
+Only the values related to casualties, injuries, property damage, crops damage and event type are relevant for this research.
+
+```{r reducing-columns, cache=TRUE}
+c < -c("EVTYPE","FATALITIES","INJURIES","PROPDMG","PROPDMGEXP","CROPDMG","CROPDMGEXP")
+n <- c("type","fat","inj","prop","prope","crop","crope")
+x <- x[,c]
+names(x) <- n
+```
+
+
+```{r }
 
 ####2.1. Impact on health
 
 For the impact on health the relevant data are in the columns *FATALITIES* and *INJURIES*, for late processing these two values are summarized (summed) for the event types *EVTYPE*.
 
 ```{r summarizing-health, cache=TRUE}
-g             <- group_by(stormData, EVTYPE)
-health        <- summarize(g, fatalities = sum(FATALITIES), injuries = sum(INJURIES))
-names(health) <- c("type","fatalities","injuries")
+g             <- group_by(x, type)
+health        <- summarize(g, fat = sum(fat), inj = sum(inj))
 ```
 
 An inspection of the registered categories shows there are many similar types. In an attempt to correct for this, some similar categories are combined in the following way:
@@ -65,26 +74,25 @@ An inspection of the registered categories shows there are many similar types. I
 * containing *DRY*: **combined category DRY**
 
 ```{r reducing-categories}
-health$type <- health$type
-health[ grep("THUNDERSTORM", health$type),]$type <- "THUNDERSTORM"
-health[ grep("FLOOD", health$type),]$type <- "FLOOD"
-health[ grep("HEAT", health$type),]$type <- "HEAT"
-health[ grep("^TSTM", health$type),]$type <- "THUNDERSTORM"
-health[ grep("DRY", health$type),]$type <- "DRY"
+health[grep("THUNDERSTORM", health$type),]$type <- "THUNDERSTORM"
+health[grep("FLOOD", health$type),]$type <- "FLOOD"
+health[grep("HEAT", health$type),]$type <- "HEAT"
+health[grep("^TSTM", health$type),]$type <- "THUNDERSTORM"
+health[grep("DRY", health$type),]$type <- "DRY"
 ```
 
 With the updated *type* a new summarization needs to be done. The recategorization has been carried out after the first summarization in order to reduce processing time. 
 
 ```{r summarizing-reduced-categories}
 g      <- group_by(health, type)
-health <- summarize(g, fatalities = sum(fatalities), injuries = sum(injuries))
+health <- summarize(g, fat = sum(fat), inj = sum(inj))
 ```
 
 Now lists containing the most damaging weather types can be created.
 
 ```{r top-impact-lists}
-topF <- arrange(top_n(health, 10, fatalities), desc(fatalities))
-topI <- arrange(top_n(health, 10, injuries), desc(injuries))
+topF <- arrange(top_n(health, 10, fat), desc(fat))
+topI <- arrange(top_n(health, 10, inj), desc(inj))
 
 # creating an ordered factor for plots
 
@@ -106,20 +114,20 @@ Using the processing in the previous section the following graph can be created,
 
 ```{r plot-health-impact}
 
-g1 <- ggplot(topF, aes(x=factor(type), y=fatalities))
+g1 <- ggplot(topF, aes(x=factor(type), y=fat))
 g1 <- g1 + geom_bar(stat="identity", fill="#990000")
 g1 <- g1 + theme(axis.text.x = element_text(angle = 30, hjust = 1))
 g1 <- g1 + xlab("Graphic 1: fatalities") + ylab("Number of fatalities")
-g1 <- g1 + geom_text(aes(label=fatalities),vjust=-0.25, size=3, colour="#990000")
+g1 <- g1 + geom_text(aes(label=fat),vjust=-0.25, size=3, colour="#990000")
 g1 <- g1 + geom_text(data=data.frame(),
                      aes(8,5000,label="Fatalities"), colour="#666666", size=5)
 g1
 
-g2 <- ggplot(topI, aes(x=factor(type), y=injuries))
+g2 <- ggplot(topI, aes(x=factor(type), y=inj))
 g2 <- g2 + geom_bar(stat="identity", fill="#000099")
 g2 <- g2 + xlab("Graphic 2: injuries") + ylab("Number of injuries")
 g2 <- g2 + theme(axis.text.x = element_text(angle = 30, hjust =1))
-g2 <- g2 + geom_text(aes(label=injuries),vjust=-0.25, size=3, colour="#000099")
+g2 <- g2 + geom_text(aes(label=inj),vjust=-0.25, size=3, colour="#000099")
 g2 <- g2 + geom_text(data=data.frame(),
                      aes(8,75000,label="Injuries"), size=5, colour="#666666")
 g2
