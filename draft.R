@@ -2,10 +2,14 @@
 # 
 # only used to collect notes and ideas and steps taken
 
+
+
+
+
 # reading data. Cache this step, it takes looooooong.
 
-stormData <- read. csv("repdata-data-StormData.csv.bz2")
-dim(stormData)     
+stormData <- read. csv("repdata-data-StormData.csv.bz2", stringsAsFactors = FALSE)  !!!!!!!!!!!!!!!!! false false
+ dim(stormData)     
 
 # 902,297 x 37
 
