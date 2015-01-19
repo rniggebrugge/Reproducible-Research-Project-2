@@ -30,6 +30,7 @@ x <- read.csv("./repdata-data-StormData.csv.bz2", stringsAsFactors = FALSE)
 
 The result is an extensive dataset with information from 1950 till 2011. 
 
+<!--
 ```{r information-dataset, cache=TRUE}
 dim(x)
 names(x)
@@ -44,7 +45,7 @@ period      <- paste(start_date," - ", end_date)
 
 Start date: `r start_date`  
 End date   : `r end_date`
-
+-->
 Only the values related to casualties, injuries, property damage, crops damage and event type are relevant for this research.
 
 ```{r reducing-columns, cache=TRUE}
@@ -152,6 +153,10 @@ top_all  <- arrange(top_n(damage, 10, total), desc(total))
 top_prop$type <- factor(top_prop$type, levels = top_prop$type, ordered=TRUE)
 top_crop$type <- factor(top_crop$type, levels = top_crop$type, ordered=TRUE)
 top_all$type  <- factor(top_all$type,  levels = top_all$type,  ordered=TRUE)
+
+top_all$total <- round(top_all$total*1e-9, digits=1)
+top_crop$crop <- round(top_crop$crop*1e-9, digits=1)
+top_prop$prop <- round(top_prop$prop*1e-9, digits=1)
 ```
 
 ###3. Results
@@ -198,7 +203,7 @@ g3 <- g3 + theme(axis.text.x = element_text(angle = 30, hjust = 1))
 g3 <- g3 + xlab("Graphic 1: ---") + ylab("Number of ---")
 g3 <- g3 + geom_text(aes(label=prop),vjust=-0.25, size=3, colour="#990000")
 g3 <- g3 + geom_text(data=data.frame(),
-                    aes(8,5000,label="---"), colour="#666666", size=5)
+                    aes(8,150,label="---"), colour="#666666", size=5)
 g3
 
 g4 <- ggplot(top_crop, aes(x=factor(type), y=crop))
@@ -207,7 +212,7 @@ g4 <- g4 + xlab("Graphic 2: ---") + ylab("Number of ---")
 g4 <- g4 + theme(axis.text.x = element_text(angle = 30, hjust =1))
 g4 <- g4 + geom_text(aes(label=crop),vjust=-0.25, size=3, colour="#000099")
 g4 <- g4 + geom_text(data=data.frame(),
-                     aes(8,75000,label="---"), size=5, colour="#666666")
+                     aes(8,13,label="---"), size=5, colour="#666666")
 g4
 
 g5 <- ggplot(top_all, aes(x=factor(type), y=total))
@@ -216,5 +221,6 @@ g5 <- g5 + theme(axis.text.x = element_text(angle = 30, hjust = 1))
 g5 <- g5 + xlab("Graphic 1: ----") + ylab("Number of ----")
 g5 <- g5 + geom_text(aes(label=total),vjust=-0.25, size=3, colour="#990000")
 g5 <- g5 + geom_text(data=data.frame(),
-                     aes(8,5000,label="----"), colour="#666666", size=5)
+                     aes(8,160,label="----"), colour="#666666", size=5)
 g5
+```
