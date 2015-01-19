@@ -8,7 +8,32 @@
 
 # reading data. Cache this step, it takes looooooong.
 
-stormData <- read. csv("repdata-data-StormData.csv.bz2", stringsAsFactors = FALSE)  !!!!!!!!!!!!!!!!! false false
+stormData <- read. csv("repdata-data-StormData.csv.bz2", stringsAsFactors = FALSE)  ##!!!!!!!!!!!!!!!!! false false
+c<-c("EVTYPE","FATALITIES","INJURIES","PROPDMG","PROPDMGEXP","CROPDMG","CROPDMGEXP")
+n<-c("type","fat","inj","prop","prope","crop","crope")
+stormData <- stormData[,c]  #  reduce table ...
+names(stormData) <- n # and give better handles
+x<-stormData
+x$crope[x$crope=="?" | x$crope==""] <-0
+x$crope[x$crope=="m" | x$crope=="M"] <-6
+x$crope[x$crope=="b" | x$crope=="B"] <-9
+x$crope[x$crope=="K" | x$crope=="k"] <-3
+
+x$prope[x$prope=="?" | x$prope=="" | x$prope=="+" | x$prope=="-"] <-0
+x$prope[x$prope=="m" | x$prope=="M"] <-6
+x$prope[x$prope=="b" | x$prope=="B"] <-9
+x$prope[x$prope=="K" | x$prope=="k"] <-3
+x$prope[x$prope=="h" | x$prope=="H"] <-3
+
+
+
+x$damage <- (x$prop * 10^x$prope + x$crop * 10^x$crope)
+
+
+x$crope2
+
+
+
  dim(stormData)     
 
 # 902,297 x 37
