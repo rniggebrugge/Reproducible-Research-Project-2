@@ -1,11 +1,6 @@
----
-title: "Impact of severe weather events on health and economy"
-author: "Remco Niggebrugge"
-date: "01/19/2015"
-output: 
-        html_document:
-                keep_md: true
----
+# Impact of severe weather events on health and economy
+Remco Niggebrugge  
+01/19/2015  
 
 Based on the information from the U.S. National Oceanic and Atmoshperic Administration (NOAA) our research will show which are the severe weather type having the biggest impact on the health of the population and on the economy of the country. The number of weather related casualties and injuries is used to assess the impact on health. Damages to properties and crops (argicultar sector) is used to assess the impact on the economy. The report will list the most damaging weather types.
 
@@ -15,12 +10,30 @@ Based on the information from the U.S. National Oceanic and Atmoshperic Administ
 
 For the proper functioning of the code used in this report, the following libraries are required:
 
-```{r libraries}
+
+```r
 library(tidyr)
 library(ggplot2)
 library(lubridate)
 library(grid)
 library(dplyr)
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+## 
+## The following objects are masked from 'package:lubridate':
+## 
+##     intersect, setdiff, union
+## 
+## The following object is masked from 'package:stats':
+## 
+##     filter
+## 
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
 ```
 
 <br>
@@ -29,7 +42,8 @@ library(dplyr)
 
 The **Storm Data** file is first loaded into [R] for further processing:
 
-```{r load-data, cache=TRUE} 
+
+```r
 x <- read.csv("./repdata-data-StormData.csv.bz2", stringsAsFactors = FALSE)
 ```
 
@@ -37,7 +51,8 @@ The result is an extensive dataset with information from 1950 till 2011.
 
 Only the values related to casualties, injuries, property damage, crops damage and event type are relevant for this research.  
 
-```{r reducing-columns, cache=TRUE}
+
+```r
 c <-c("EVTYPE","FATALITIES","INJURIES","PROPDMG","PROPDMGEXP","CROPDMG","CROPDMGEXP")
 n <- c("type","fat","inj","prop","prope","crop","crope")
 x <- x[,c]
@@ -60,7 +75,8 @@ After selecting and renaming columns, the resulting data.frame has the following
 
 For the impact on health the relevant data are in the columns *fat* and *inj*, for later processing these two values are summarized (summed) for the event types *type*.
 
-```{r summarizing-health, cache=TRUE}
+
+```r
 g             <- group_by(x, type)
 health        <- summarize(g, fat = sum(fat), inj = sum(inj))
 ```
@@ -73,7 +89,8 @@ An inspection of the registered categories shows there are many similar types. I
 * containing *DRY*: <u>combined category DRY</u>;
 * all other categories will not change name
 
-```{r reducing-categories}
+
+```r
 health[grep("THUNDERSTORM", health$type),]$type <- "THUNDERSTORM"
 health[grep("FLOOD", health$type),]$type <- "FLOOD"
 health[grep("HEAT", health$type),]$type <- "HEAT"
@@ -83,14 +100,16 @@ health[grep("DRY", health$type),]$type <- "DRY"
 
 With the updated *type* a new summarization needs to be done. The recategorization has been carried out after the first summarization in order to reduce processing time. 
 
-```{r summarizing-reduced-categories, cache=TRUE}
+
+```r
 g      <- group_by(health, type)
 health <- summarize(g, fat = sum(fat), inj = sum(inj))
 ```
 
 Now lists containing the most damaging weather types can be created.
 
-```{r top-impact-lists, cache=TRUE}
+
+```r
 topF <- arrange(top_n(health, 10, fat), desc(fat))
 topI <- arrange(top_n(health, 10, inj), desc(inj))
 
@@ -106,8 +125,8 @@ topI$type <- factor(topI$type, levels = topI$type, ordered=TRUE)
 
 For the economic impact two values are relevant in this dataset, *prop* and *crop* that represent damage to property and damage to crops. Both columns have to be multiplied by *prope* and *crope* respectively, these represent the order of magnitude. Before making the calculation we need to tidy these two last columns.
 
-```{r processing-damage-values, cache=TRUE}
 
+```r
 x$prope[x$prope=="" | x$prope=="?" | x$prope=="-" | x$prope=="+"] <- "0"
 x$prope[x$prope=="h" | x$prope=="H"] <- "2"
 x$prope[x$prope=="k" | x$prope=="K"] <- "3"
@@ -132,7 +151,8 @@ x$dmg <- x$cropdmg + x$propdmg
 Now with the properly calculated damages a summary can be made. As with health impact the grouping will be over the severe weather types. Also the same recategorization will be carried out, grouping similar categories.
 
 
-```{r damage-grouping, cache=TRUE}
+
+```r
 g      <- group_by(x, type)
 damage <- summarize(g, total=sum(dmg), prop=sum(propdmg), crop=sum(cropdmg))
 
@@ -166,8 +186,8 @@ names(melted) <- c("type", "damage", "value")
 
 To improve readability of the report, all plots are generated in this processing section. The actual results are incorporated in the **Results** section.
 
-```{r generating-plots}
 
+```r
 ## Plot top 10 weather events causing fatalities
 
 g1 <- ggplot(topF, aes(x=factor(type), y=fat))
@@ -205,7 +225,6 @@ g3 <- ggplot(melted, aes(x=factor(type), y=value, fill=damage)) +
 g3 <- g3 + annotate("text", x = factor(damage$type), color="#000066",
                     y = damage$total+3.3, label = damage$total, size=3) 
 g3 <- g3 + ggtitle("The 10 weather events causing most economic damage")        
-
 ```
 
 <br>
@@ -217,9 +236,12 @@ g3 <- g3 + ggtitle("The 10 weather events causing most economic damage")
 
 Using the processing in the previous section the following graph can be created, indicating those severe weather events having the worst impact on health.
 
-```{r plot-health-impact}
+
+```r
 g1; g2
 ```
+
+![](report_files/figure-html/plot-health-impact-1.png) ![](report_files/figure-html/plot-health-impact-2.png) 
 
 As can be concluded from above plots by far the most devastating weather event is the **tornado**. Between 1950 and 2011 Tornados caused 5633 casualties and 91346 injuries. 
 
@@ -232,9 +254,12 @@ Other weather types having big impact are **heat**, **thunderstorms** and **floo
 With the damages calculated in the "Processing" section, it is possible to plot the total damages against severe weather type. The total economic damage is the sum of the damages to properties and to crops (agricultaral industry). 
 
 
-```{r plot-economy-impact}
+
+```r
 g3
 ```
+
+![](report_files/figure-html/plot-economy-impact-1.png) 
 
 **Flood** and **wind related weather phenomena** (hurricanes, tornados, storm surges, etc.) have the biggest impact on the economy. As can be seen from the graph, **drought** has the biggest impact on crops, but as it has minor impact on properties it ranks only 6th overall. 
 
