@@ -7,18 +7,21 @@ output: html_document
 
 Based on the information from the U.S. National Oceanic and Atmoshperic Administration (NOAA) our research will show which are the severe weather type having the biggest impact on the health of the population and on the economy of the country. The number of weather related casualties and injuries is used to assess the impact on health. Damages to properties and crops (argicultar sector) is used to assess the impact on the economy. The report will list the most damaging weather types.
 
+<br>
 
 ###1. R Libraries
 
 For the proper functioning of the code used in this report, the following libraries are required:
 
 ```{r libraries}
-library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(lubridate)
+library(grid)
+library(dplyr)
 ```
 
+<br>
 
 ###2. Data Processing
 
@@ -30,23 +33,7 @@ x <- read.csv("./repdata-data-StormData.csv.bz2", stringsAsFactors = FALSE)
 
 The result is an extensive dataset with information from 1950 till 2011. 
 
-<!--
-```{r information-dataset, cache=TRUE}
-dim(x)
-names(x)
-```
-
-
-```{r start-end-date, cache=TRUE}
-start_date  <- mdy_hms(x[1,]$BGN_DATE) 
-end_date    <- mdy_hms(x[dim(x)[1],]$BGN_DATE) 
-period      <- paste(start_date," - ", end_date)
-```
-
-Start date: `r start_date`  
-End date   : `r end_date`
--->
-Only the values related to casualties, injuries, property damage, crops damage and event type are relevant for this research.
+Only the values related to casualties, injuries, property damage, crops damage and event type are relevant for this research.  
 
 ```{r reducing-columns, cache=TRUE}
 c <-c("EVTYPE","FATALITIES","INJURIES","PROPDMG","PROPDMGEXP","CROPDMG","CROPDMGEXP")
@@ -54,11 +41,22 @@ n <- c("type","fat","inj","prop","prope","crop","crope")
 x <- x[,c]
 names(x) <- n
 ```
+ 
+After selecting and renaming columns, the resulting data.frame has the following columns:
 
+* type (weather type)
+* fat (# fatalities)
+* inj (# injuries)
+* prop (# property damage)
+* crop (# crops damage)
+* prope (multiplication factor property damage)
+* crope (multiplication factor crops damage)
+
+<br>
 
 ####2.1. Impact on health
 
-For the impact on health the relevant data are in the columns *FATALITIES* and *INJURIES*, for late processing these two values are summarized (summed) for the event types *EVTYPE*.
+For the impact on health the relevant data are in the columns *fat* and *inj*, for later processing these two values are summarized (summed) for the event types *type*.
 
 ```{r summarizing-health, cache=TRUE}
 g             <- group_by(x, type)
@@ -100,10 +98,11 @@ topF$type <- factor(topF$type, levels = topF$type, ordered=TRUE)
 topI$type <- factor(topI$type, levels = topI$type, ordered=TRUE)
 ```
 
+<br>
 
 ####2.2. Impact on the economy
 
-For the economic impact two values are relevant in this dataset, *PROPDMG* and *CROPDMG* that represent damage to property and damage to crops. Both columns have to be multiplied by *PROPDMGEXP* and *CROPDMGEXP* respectively, these represent the order of magnitude. Before making the calculation we need to tidy these two last columns.
+For the economic impact two values are relevant in this dataset, *prop* and *crop* that represent damage to property and damage to crops. Both columns have to be multiplied by *prope* and *crope* respectively, these represent the order of magnitude. Before making the calculation we need to tidy these two last columns.
 
 ```{r processing-damage-values, cache=TRUE}
 
@@ -159,23 +158,26 @@ melted <- gather(melted, var, val, -type)
 names(melted) <- c("type", "damage", "value")
 ```
 
-###3. Results
+<br>
 
+####2.3. Creating plots
 
-####3.1. Weather events having most impact on health
+To improve readability of the report, all plots are generated in this processing section. The actual results are incorporated in the **Results** section.
 
-Using the processing in the previous section the following graph can be created, indicating those severe weather events having the worst impact on health.
+```{r generating-plots}
 
-```{r plot-health-impact}
+## Plot top 10 weather events causing fatalities
 
 g1 <- ggplot(topF, aes(x=factor(type), y=fat))
-g1 <- g1 + geom_bar(stat="identity", fill="#000066")
+g1 <- g1 + geom_bar(stat="identity", fill="#660000")
 g1 <- g1 + theme(axis.text.x = element_text(angle = 30, hjust = 1))
 g1 <- g1 + xlab("") + ylab("Number of fatalities")
-g1 <- g1 + geom_text(aes(label=fat),vjust=-0.25, size=3, colour="#000066")
+g1 <- g1 + geom_text(aes(label=fat),vjust=-0.25, size=3, colour="#660000")
 g1 <- g1 + geom_text(data=data.frame(),
-                     aes(8,5000,label="Fatalities"), colour="#666666", size=4)
-g1
+                     aes(8,6000,label="Fatalities"), colour="#666666", size=4)
+g1 <- g1 + ggtitle("The 10 weather events causing most casualties")
+
+## Plot top 10 weather events causing injuries
 
 g2 <- ggplot(topI, aes(x=factor(type), y=inj))
 g2 <- g2 + geom_bar(stat="identity", fill="#003366")
@@ -183,19 +185,10 @@ g2 <- g2 + xlab("") + ylab("Number of injuries")
 g2 <- g2 + theme(axis.text.x = element_text(angle = 30, hjust =1))
 g2 <- g2 + geom_text(aes(label=inj),vjust=-0.25, size=3, colour="#003366")
 g2 <- g2 + geom_text(data=data.frame(),
-                     aes(8,75000,label="Injuries"), size=4, colour="#666666")
-g2
+                     aes(8,80000,label="Injuries"), size=4, colour="#666666")
+g2 <- g2 + ggtitle("The 10 weather events causing most injuries")
 
-```
-
-As can be concluded from both *Graphic 1* and *Graphic 2* by far the most devastating weather event is the **tornado**. Between 1950 and 2011 Tornados caused 5633 casualties and 91346 injuries. 
-
-Other weather types having big impact are **heat** (specially when *excessive heat* and *heat* are summed) and **flood* (specially when **flash flood** and **flood** numbers are summed). 
-
-
-####3.2. Weather events having large impact on the economy
-
-```{r plot-economy-impact}
+## Plot top 10 weather events causing economic damages
 
 g3 <- ggplot(melted, aes(x=factor(type), y=value, fill=damage)) +
         geom_bar(stat="identity") + 
@@ -207,7 +200,43 @@ g3 <- ggplot(melted, aes(x=factor(type), y=value, fill=damage)) +
         xlab("") + ylab("Damage in Billion $") +
         theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
         theme(legend.title=element_blank())
-
-g3
+g3 <- g3 + annotate("text", x = factor(damage$type), color="#000066",
+                    y = damage$total+3.3, label = damage$total, size=3) 
+g3 <- g3 + ggtitle("The 10 weather events causing most economic damage")        
 
 ```
+
+<br>
+
+###3. Results
+
+
+####3.1. Weather events having most impact on health
+
+Using the processing in the previous section the following graph can be created, indicating those severe weather events having the worst impact on health.
+
+```{r plot-health-impact}
+g1; g2
+```
+
+As can be concluded from above plots by far the most devastating weather event is the **tornado**. Between 1950 and 2011 Tornados caused 5633 casualties and 91346 injuries. 
+
+Other weather types having big impact are **heat**, **thunderstorms** and **flood**. It is difficult to rank injuries against casualties, therefore no attempt is made to combine these numbers into one indicator.
+
+<br>
+
+####3.2. Weather events having large impact on the economy
+
+With the damages calculated in the "Processing" section, it is possible to plot the total damages against severe weather type. The total economic damage is the sum of the damages to properties and to crops (agricultaral industry). 
+
+
+```{r plot-economy-impact}
+g3
+```
+
+**Flood** and **wind related weather phenomena** (hurricanes, tornados, storm surges, etc.) have the biggest impact on the economy. As can be seen from the graph, **drought** has the biggest impact on crops, but as it has minor impact on properties it ranks only 6th overall. 
+
+<br>
+
+  
+  
