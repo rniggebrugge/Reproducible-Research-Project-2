@@ -142,21 +142,21 @@ damage[grep("^TSTM", damage$type),]$type <- "THUNDERSTORM"
 damage[grep("DRY", damage$type),]$type <- "DRY"
 
 g      <- group_by(damage, type)
-damage <- summarize(g, total=sum(total), prop=sum(prop), crop=sum(crop))
-
-top_prop <- arrange(top_n(damage, 10, prop), desc(prop))
-top_crop <- arrange(top_n(damage, 10, crop), desc(crop))
-top_all  <- arrange(top_n(damage, 10, total), desc(total))
+damage <- summarize(g, total=sum(total), property=sum(prop), crops=sum(crop))
+damage <- arrange(top_n(damage, 10, total), desc(total))
 
 # creating an ordered factor for plots
+damage$type  <- factor(damage$type,  levels = damage$type,  ordered=TRUE)
 
-top_prop$type <- factor(top_prop$type, levels = top_prop$type, ordered=TRUE)
-top_crop$type <- factor(top_crop$type, levels = top_crop$type, ordered=TRUE)
-top_all$type  <- factor(top_all$type,  levels = top_all$type,  ordered=TRUE)
+# express values in billions for better readability
+damage$total <- round(damage$total*1e-9, digits=1)
+damage$crops  <- round(damage$crops*1e-9,  digits=1)
+damage$property  <- round(damage$property*1e-9,  digits=1)
 
-top_all$total <- round(top_all$total*1e-9, digits=1)
-top_crop$crop <- round(top_crop$crop*1e-9, digits=1)
-top_prop$prop <- round(top_prop$prop*1e-9, digits=1)
+# melt table for better plotting
+melted <- damage[,c("type", "property", "crops")]
+melted <- gather(melted, var, val, -type)
+names(melted) <- c("type", "damage", "value")
 ```
 
 ###3. Results
@@ -169,21 +169,21 @@ Using the processing in the previous section the following graph can be created,
 ```{r plot-health-impact}
 
 g1 <- ggplot(topF, aes(x=factor(type), y=fat))
-g1 <- g1 + geom_bar(stat="identity", fill="#990000")
+g1 <- g1 + geom_bar(stat="identity", fill="#000066")
 g1 <- g1 + theme(axis.text.x = element_text(angle = 30, hjust = 1))
-g1 <- g1 + xlab("Graphic 1: fatalities") + ylab("Number of fatalities")
-g1 <- g1 + geom_text(aes(label=fat),vjust=-0.25, size=3, colour="#990000")
+g1 <- g1 + xlab("") + ylab("Number of fatalities")
+g1 <- g1 + geom_text(aes(label=fat),vjust=-0.25, size=3, colour="#000066")
 g1 <- g1 + geom_text(data=data.frame(),
-                     aes(8,5000,label="Fatalities"), colour="#666666", size=5)
+                     aes(8,5000,label="Fatalities"), colour="#666666", size=4)
 g1
 
 g2 <- ggplot(topI, aes(x=factor(type), y=inj))
-g2 <- g2 + geom_bar(stat="identity", fill="#000099")
-g2 <- g2 + xlab("Graphic 2: injuries") + ylab("Number of injuries")
+g2 <- g2 + geom_bar(stat="identity", fill="#003366")
+g2 <- g2 + xlab("") + ylab("Number of injuries")
 g2 <- g2 + theme(axis.text.x = element_text(angle = 30, hjust =1))
-g2 <- g2 + geom_text(aes(label=inj),vjust=-0.25, size=3, colour="#000099")
+g2 <- g2 + geom_text(aes(label=inj),vjust=-0.25, size=3, colour="#003366")
 g2 <- g2 + geom_text(data=data.frame(),
-                     aes(8,75000,label="Injuries"), size=5, colour="#666666")
+                     aes(8,75000,label="Injuries"), size=4, colour="#666666")
 g2
 
 ```
@@ -197,30 +197,17 @@ Other weather types having big impact are **heat** (specially when *excessive he
 
 ```{r plot-economy-impact}
 
-g3 <- ggplot(top_prop, aes(x=factor(type), y=prop))
-g3 <- g3 + geom_bar(stat="identity", fill="#990000")
-g3 <- g3 + theme(axis.text.x = element_text(angle = 30, hjust = 1))
-g3 <- g3 + xlab("Graphic 1: ---") + ylab("Number of ---")
-g3 <- g3 + geom_text(aes(label=prop),vjust=-0.25, size=3, colour="#990000")
-g3 <- g3 + geom_text(data=data.frame(),
-                    aes(8,150,label="---"), colour="#666666", size=5)
+g3 <- ggplot(melted, aes(x=factor(type), y=value, fill=damage)) +
+        geom_bar(stat="identity") + 
+        scale_fill_manual(values=c("#000066","#0066cc")) + 
+        geom_text(data=data.frame(), 
+                  aes(6,150,
+                  label="Damage caused by severe weather"), 
+                  colour="#666666", size=4) +
+        xlab("") + ylab("Damage in Billion $") +
+        theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
+        theme(legend.title=element_blank())
+
 g3
 
-g4 <- ggplot(top_crop, aes(x=factor(type), y=crop))
-g4 <- g4 + geom_bar(stat="identity", fill="#000099")
-g4 <- g4 + xlab("Graphic 2: ---") + ylab("Number of ---")
-g4 <- g4 + theme(axis.text.x = element_text(angle = 30, hjust =1))
-g4 <- g4 + geom_text(aes(label=crop),vjust=-0.25, size=3, colour="#000099")
-g4 <- g4 + geom_text(data=data.frame(),
-                     aes(8,13,label="---"), size=5, colour="#666666")
-g4
-
-g5 <- ggplot(top_all, aes(x=factor(type), y=total))
-g5 <- g5 + geom_bar(stat="identity", fill="#990000")
-g5 <- g5 + theme(axis.text.x = element_text(angle = 30, hjust = 1))
-g5 <- g5 + xlab("Graphic 1: ----") + ylab("Number of ----")
-g5 <- g5 + geom_text(aes(label=total),vjust=-0.25, size=3, colour="#990000")
-g5 <- g5 + geom_text(data=data.frame(),
-                     aes(8,160,label="----"), colour="#666666", size=5)
-g5
 ```
