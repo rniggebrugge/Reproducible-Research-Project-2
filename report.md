@@ -221,7 +221,7 @@ g3 <- ggplot(melted, aes(x=factor(type), y=value, fill=damage)) +
                   colour="#666666", size=4) +
         xlab("") + ylab("Damage in Billion $") +
         theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
-        theme(legend.title=element_blank())
+        theme(legend.title=element_blank(), legend.position = "bottom")
 g3 <- g3 + annotate("text", x = factor(damage$type), color="#000066",
                     y = damage$total+3.3, label = damage$total, size=3) 
 g3 <- g3 + ggtitle("The 10 weather events causing most economic damage")        
